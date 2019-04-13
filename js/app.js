@@ -285,29 +285,98 @@ function getNbt() {
     }
     //edit SIZE parameter!!!
     //return {"blocks":blocks,"entities":{},"palette":nbtblocklist,"size":[ctx.canvas.width,2,ctx.canvas.height],"author":"rebane2001.com/mapartcraft","DataVersion":1343};
-    jsonstring = "{\"name\":\"\",\"value\":{\"blocks\":{\"type\":\"list\",\"value\":{\"type\":\"compound\",\"value\":[";
-    blocks.forEach(function(r) {
-        jsonstring += "{\"pos\":{\"type\":\"list\",\"value\":{\"type\":\"int\",\"value\":[" + r["pos"][0] + "," + r["pos"][1] + "," + r["pos"][2] + "]}},\"state\":{\"type\":\"int\",\"value\":" + r["state"] + "}},";
-    });
-    jsonstring = jsonstring.slice(0, -1);
-    jsonstring += "]}},\"entities\":{\"type\":\"list\",\"value\":{\"type\":\"compound\",\"value\":[]}},\"palette\":{\"type\":\"list\",\"value\":{\"type\":\"compound\",\"value\":[";
-    nbtblocklist.forEach(function(r) {
-        if ("Properties" in r) {
-            jsonstring += "{\"Properties\":{\"type\":\"compound\",\"value\":{";
-            Object.keys(r["Properties"]).forEach(function(t) {
-                jsonstring += "\"" + t + "\":{\"type\":\"string\",\"value\":\"" + r["Properties"][t] + "\"},";
-            });
-            jsonstring = jsonstring.slice(0, -1);
-            jsonstring += "}}, \"Name\":{\"type\":\"string\",\"value\":\"" + r["Name"] + "\"}},";
-        } else {
-            jsonstring += "{\"Name\":{\"type\":\"string\",\"value\":\"" + r["Name"] + "\"}},";
+    let mapData = {
+        name: "",
+        value: {
+            blocks: {
+                type: "list",
+                value: {
+                    type: "compound",
+                    value: blocks.map(function(v) {
+                        return {
+                            pos: {
+                                type: "list",
+                                value: {
+                                    type: "int",
+                                    value: [
+                                        v["pos"][0],
+                                        v["pos"][1],
+                                        v["pos"][2]
+                                    ]
+                                }
+                            },
+                            state: {
+                                type: "int",
+                                value: v["state"]
+                            }
+                        };
+                    })
+                }
+            },
+            entities: {
+                type: "list",
+                value: {
+                    type: "compound",
+                    value: []
+                }
+            },
+            palette: {
+                type: "list",
+                value: {
+                    type: "compound",
+                    value: nbtblocklist.map(function(v) {
+                        var base = {
+                            "Name": {
+                                type: "string",
+                                value: v["Name"]
+                            }
+                        };
+                        if ("Properties" in v) {
+                            let props = {};
+                            Object.keys(v["Properties"]).forEach(function(t) {
+                                props[t] = {
+                                    type: "string",
+                                    value: v["Properties"][t]
+                                };
+                            });
+
+                            Object.assign(base, {
+                                "Properties": {
+                                    type: "compound",
+                                    value: props
+                                }
+                            });
+                        }
+
+                        return base;
+                    })
+                }
+            },
+            size: {
+                type: "list",
+                value: {
+                    type: "int",
+                    value: [
+                        ctx.canvas.width,
+                        (maxheight[1] - maxheight[0]),
+                        (ctx.canvas.height + 1)
+                    ]
+                }
+            },
+            author: {
+                type: "string",
+                value: "rebane2001.com/mapartcraft"
+            },
+            "DataVersion": {
+                type: "int",
+                value: 1343
+            }
         }
-    });
-    maxheight = maxheight[1] - maxheight[0];
-    jsonstring = jsonstring.slice(0, -1) + "]}},\"size\":{\"type\":\"list\",\"value\":{\"type\":\"int\",\"value\":[" + ctx.canvas.width + "," + maxheight + "," + (ctx.canvas.height + 1) + "]}},\"author\":{\"type\":\"string\",\"value\":\"rebane2001.com/mapartcraft\"},\"DataVersion\":{\"type\":\"int\",\"value\":1343}}}";
-    //download
-    console.log("Parsing JSON and converting to NBT");
-    let nbtdata = nbt.writeUncompressed(JSON.parse(jsonstring));
+    }
+
+    // download
+    console.log("Converting map data to NBT");
+    let nbtdata = nbt.writeUncompressed(mapData);
     console.log("Gzipping");
     let gzipped = pako.gzip(nbtdata);
     console.log("Blobbing");
